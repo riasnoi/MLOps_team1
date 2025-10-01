@@ -5,6 +5,9 @@ Icon?
 Thumbs.db
 *.DS_Store
 
+.dvc
+.dvc*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
