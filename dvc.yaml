@@ -1,0 +1,8 @@
+stages:
+  preprocess:
+    cmd: python src/preprocess.py
+    deps:
+    - data/raw/sms_spam.csv
+    - src/preprocess.py
+    outs:
+    - data/processed/processed.csv
