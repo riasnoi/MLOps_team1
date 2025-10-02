@@ -1,0 +1,18 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: python src/preprocess.py
+    deps:
+    - path: data/raw/sms_spam.csv
+      hash: md5
+      md5: 5d4888a4a08e77027610af145f80c6a7
+      size: 480803
+    - path: src/preprocess.py
+      hash: md5
+      md5: b9e315100883f74852838434780a2891
+      size: 2492
+    outs:
+    - path: data/processed/processed.csv
+      hash: md5
+      md5: 5d835454f9fa21cc2aa028cde0f7cd77
+      size: 1116215
