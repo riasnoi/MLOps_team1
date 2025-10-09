@@ -1,5 +1,5 @@
 pandas==2.2.2
-numpy==1.26.4
+numpy==1.24.4
 pyarrow==17.0.0
 datasets==2.21.0
 dvc==3.51.2
@@ -11,6 +11,8 @@ black==24.8.0
 isort==5.13.2
 flake8==7.1.1
 pre-commit==3.8.0
-
+scikit-learn==1.5.2
+joblib==1.4.2
+mlflow==2.16.0
 fastapi==0.114.2
-uvicorn[standard]==0.30.6
+uvicorn==0.30.6
