@@ -1,0 +1,15 @@
+aliases: []
+creation_timestamp: 1761226304766
+current_stage: Production
+description: "Первая версия модели, метрики в отчете:\n```\n  roc_auc: 0.9794\n  precision:
+  0.9712\n  recall: 0.9060\n```"
+last_updated_timestamp: 1761226669070
+name: spam_model
+run_id: 478646371b9c402880ecd5144a1a601a
+run_link: null
+source: file:///Users/vladimirriasnoi/Desktop/Uni/ML/mlops/MLOps_team1/mlruns/285706222051352184/478646371b9c402880ecd5144a1a601a/artifacts/model
+status: READY
+status_message: null
+storage_location: file:///Users/vladimirriasnoi/Desktop/Uni/ML/mlops/MLOps_team1/mlruns/285706222051352184/478646371b9c402880ecd5144a1a601a/artifacts/model
+user_id: null
+version: 1
