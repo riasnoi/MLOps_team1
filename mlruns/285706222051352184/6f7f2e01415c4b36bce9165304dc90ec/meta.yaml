@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/vladimirriasnoi/Desktop/Uni/ML/mlops/MLOps_team1/mlruns/285706222051352184/6f7f2e01415c4b36bce9165304dc90ec/artifacts
+end_time: 1761226047140
+entry_point_name: ''
+experiment_id: '285706222051352184'
+lifecycle_stage: active
+run_id: 6f7f2e01415c4b36bce9165304dc90ec
+run_name: evaluation
+run_uuid: 6f7f2e01415c4b36bce9165304dc90ec
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1761226047133
+status: 3
+tags: []
+user_id: vladimirriasnoi
