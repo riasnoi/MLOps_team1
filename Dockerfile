@@ -16,4 +16,4 @@ VOLUME ["/models"]
 
 EXPOSE 8080
 
-CMD ["uvicorn", "serve:app", "--host", "0.0.0.0", "--port", "8080", "--log-level", "info"]
+CMD ["uvicorn", "src.api:app", "--host", "0.0.0.0", "--port", "8080", "--log-level", "info"]
