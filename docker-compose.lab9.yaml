@@ -1,0 +1,16 @@
+services:
+  feast-lab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >-
+      bash -c "python src/download_data.py &&
+      python src/preprocess.py &&
+      cd feature_repo &&
+      feast apply &&
+      feast materialize 2020-01-01 2020-12-31 &&
+      cd /app &&
+      python src/train.py"

@@ -96,3 +96,47 @@ docker run --rm -p 8080:8080 -v "$(pwd)/model_store:/models" \
 
 - Скрипт `src/register.py` читает `reports/eval.json`, проверяет метрику `roc_auc`, и только при успешном пороге копирует модель в `model_store/production/random_forest.joblib`. При провале задача завершается ошибкой, и DAG подсвечивает причину.
 - Логи задач сохраняются в `airflow/logs`, модели — в `model_store/`, отчёт — в `reports/eval.json`. Эти каталоги уже проброшены в Docker Compose, поэтому артефакты доступны и с хоста.
+
+## Lab 9 — Feature Store (Feast)
+
+В этой лабораторной признаки вынесены в Feature Store (Feast). Каталог `feature_repo/` содержит конфигурацию (`feature_store.yaml`) и описания entity/feature view (`feature_repo.py`). Источником служит оффлайн таблица `data/processed/processed.csv` (и `processed.parquet` для самого Feast), формируемая `src/preprocess.py`.
+
+### Быстрый запуск через Docker
+
+```bash
+docker compose -f docker-compose.lab9.yaml up --build
+```
+
+Команда соберёт образ на основе существующего `Dockerfile`, выполнит:
+1. `python src/download_data.py`
+2. `python src/preprocess.py`
+3. `cd feature_repo && feast apply`
+4. `feast materialize 2020-01-01 2020-12-31`
+5. `python src/train.py`
+
+В логах контейнера можно отследить каждый шаг; после завершения контейнер остановится. Артефакты (materialized registry в `feature_repo/data/`, обученная модель в `model_store/`, отчёт в `reports/`) доступны на хосте. По окончании работы остановите сервис: `docker compose -f docker-compose.lab9.yaml down --remove-orphans` (контейнер однократный, поэтому команда опциональна).
+
+### Ручные шаги (если не используете Docker Compose)
+
+1. Убедитесь, что зависимости установлены (`pip install -r requirements.txt`).
+2. Скачайте исходные данные (если файла `data/raw/sms_spam.csv` нет):
+   ```bash
+   python src/download_data.py
+   ```
+3. Сформируйте набор признаков:
+   ```bash
+   python src/preprocess.py
+   ```
+4. Выполните команды Feast:
+   ```bash
+   cd feature_repo
+   feast apply
+   feast materialize 2020-01-01 2020-12-31
+   cd ..
+   ```
+5. Запустите обучение — `src/train.py` теперь собирает признаки через Feast offline store:
+   ```bash
+   python src/train.py
+   ```
+
+Feast конфигурация использует file/offline store: entity `sms_id`, признаки `char_len`, `word_len`, `num_digits`, `num_urls`, `num_domains`, `upper_ratio`. Во время materialize создаются файлы `feature_repo/data/registry.db` и `feature_repo/data/online_store.db` (игнорируются в git). Обучающая выборка собирается функцией `FeatureStore.get_historical_features`, после чего модель и метрики сохраняются так же, как в предыдущих лабораториях.
