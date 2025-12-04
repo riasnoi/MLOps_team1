@@ -140,3 +140,56 @@ docker compose -f docker-compose.lab9.yaml up --build
    ```
 
 Feast конфигурация использует file/offline store: entity `sms_id`, признаки `char_len`, `word_len`, `num_digits`, `num_urls`, `num_domains`, `upper_ratio`. Во время materialize создаются файлы `feature_repo/data/registry.db` и `feature_repo/data/online_store.db` (игнорируются в git). Обучающая выборка собирается функцией `FeatureStore.get_historical_features`, после чего модель и метрики сохраняются так же, как в предыдущих лабораториях.
+
+## Lab 10 — Kubernetes (Minikube)
+
+Деплой API в локальный кластер (Minikube). Образ собираем прямо в Docker внутри Minikube, чтобы не пушить в Registry.
+
+### Шаги
+
+1. Запустить кластер и переключить Docker на Minikube:
+   ```bash
+   minikube start
+   minikube addons enable metrics-server   # нужно для HPA
+   eval $(minikube docker-env)
+   ```
+2. Собрать образ (использует существующий `Dockerfile`; модель уже лежит в `model_store/` внутри образа):
+   ```bash
+   docker build -t spam-api:lab10 .
+   ```
+3. Применить манифесты:
+   ```bash
+   kubectl apply -f k8s/
+   kubectl get pods,svc
+   ```
+4. Проверить доступность сервиса:
+   ```bash
+   SERVICE_URL=$(minikube service spam-api-svc --url)
+   curl -X POST "$SERVICE_URL/predict" -H "Content-Type: application/json" \
+     -d '{"text":"hello from minikube"}'
+   ```
+5. Масштабирование:
+   ```bash
+   # принудительно
+   kubectl scale --replicas=3 deployment/spam-api
+   # автоматически по CPU (понадобятся метрики)
+   kubectl get hpa
+   ```
+
+Манифесты в `k8s/`: Deployment с образом `spam-api:lab10`, Service `spam-api-svc` (NodePort 30080), HPA `spam-api-hpa` с порогом 70% CPU. Контейнер читает модель из `/app/model_store/random_forest.joblib` (копируется в образ при сборке).
+
+### Быстрые подсказки/отладка
+
+- Если `minikube start` пишет про docker-env — выполните `eval $(minikube -p minikube docker-env)` перед сборкой.
+- Если `minikube service ... --url` висит и вы прерываете его, используйте NodePort напрямую:  
+  ```bash
+  MINI_IP=$(minikube ip)
+  SERVICE_URL="http://${MINI_IP}:30080"
+  curl "$SERVICE_URL/health"
+  ```  
+  (на macOS с Docker-драйвером NodePort может блокироваться; в этом случае делайте `kubectl port-forward svc/spam-api-svc 8080:8080` и обращайтесь к `http://127.0.0.1:8080`).
+- Проверка изнутри кластера:  
+  ```bash
+  kubectl run tmp-curl --rm -it --image=curlimages/curl --restart=Never -- \
+    curl -s http://spam-api-svc:8080/health
+  ```
