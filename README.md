@@ -193,3 +193,28 @@ Feast конфигурация использует file/offline store: entity `
   kubectl run tmp-curl --rm -it --image=curlimages/curl --restart=Never -- \
     curl -s http://spam-api-svc:8080/health
   ```
+
+## Lab 11 — Monitoring (Prometheus + Grafana)
+
+API инструментирован через `prometheus_client` и отдаёт `/metrics`. Кастомные метрики: `request_count{method,endpoint,http_status}`, `request_latency_seconds_bucket/sum/count`, `prediction_proba_spam_bucket/sum/count`. Для демонстрации долгих ответов можно добавить задержку в `/predict` через переменную `SIMULATED_LATENCY_SEC` (секунды).
+
+### Docker Compose (API + Prometheus + Grafana)
+
+1. Поднять стек:  
+   `docker compose -f docker-compose.lab11.yaml up --build -d`  
+   (опционально `SIMULATED_LATENCY_SEC=0.5 docker compose -f docker-compose.lab11.yaml up --build -d`, чтобы увидеть длинные запросы).
+2. Проверка API/метрик: `curl http://localhost:8080/health`, `curl http://localhost:8080/metrics | head`.
+3. Prometheus UI: http://localhost:9090 — таргет `spam-api` должен быть `UP`; правила алертов в `prometheus_rules.yml` (видны в разделе **Alerts**, без Alertmanager только статус внутри UI).
+4. Grafana UI: http://localhost:3000 (admin/admin). Datasource и дашборд «Spam API / Lab11 — Spam API Monitoring» подтягиваются автоматически из `grafana/provisioning/`.
+
+### Генерация нагрузки для графиков
+
+- Много запросов: `hey -n 200 -c 20 -m POST -H "Content-Type: application/json" -d '{"text":"get rich quick"}' http://localhost:8080/predict`
+- Долгие запросы: запустить compose с `SIMULATED_LATENCY_SEC=0.5` или прогнать серию `for i in {1..30}; do curl -s -X POST http://localhost:8080/predict -H "Content-Type: application/json" -d '{"text":"please respond"}' >/dev/null; done`.
+- Смотрите графики: requests/s, p95 latency, средняя вероятность, распределение `prediction_proba_spam`, а также срабатывание правил в Prometheus Alerts.
+
+### Остановка
+
+```
+docker compose -f docker-compose.lab11.yaml down -v
+```

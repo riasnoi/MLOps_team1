@@ -1,13 +1,20 @@
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 from typing import Optional
 
 import joblib
 import pandas as pd
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from pydantic import BaseModel
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    Counter,
+    Histogram,
+    generate_latest,
+)
 
 # ==== те же фичи, что в src/preprocess.py ====
 import re
@@ -75,11 +82,32 @@ def build_features(text: str) -> dict[str, float | int]:
 # ==== модель и приложение ====
 MODEL_DIR = Path(os.environ.get("MODEL_DIR", "model_store"))
 MODEL_FILENAME = os.environ.get("MODEL_FILENAME", "random_forest.joblib")
+try:
+    SIMULATED_LATENCY_SEC = float(os.environ.get("SIMULATED_LATENCY_SEC", "0"))
+except ValueError:
+    SIMULATED_LATENCY_SEC = 0.0
 
 app = FastAPI(title="SMS Spam API (Lab6)")
 
 _model = None
 _model_path: Optional[Path] = None
+
+REQUEST_COUNT = Counter(
+    "request_count",
+    "Total HTTP requests",
+    ["method", "endpoint", "http_status"],
+)
+REQUEST_LATENCY = Histogram(
+    "request_latency_seconds",
+    "HTTP request latency in seconds",
+    ["method", "endpoint", "http_status"],
+    buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2, 5),
+)
+PREDICTION_DISTRIBUTION = Histogram(
+    "prediction_proba_spam",
+    "Distribution of spam probability scores",
+    buckets=(0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0),
+)
 
 def load_model() -> bool:
     global _model, _model_path
@@ -106,6 +134,24 @@ def startup_event() -> None:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     load_model()
 
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    start_time = time.perf_counter()
+    status_code = "500"
+    try:
+        response = await call_next(request)
+        status_code = str(response.status_code)
+    except Exception:
+        latency = time.perf_counter() - start_time
+        REQUEST_COUNT.labels(request.method, request.url.path, status_code).inc()
+        REQUEST_LATENCY.labels(request.method, request.url.path, status_code).observe(latency)
+        raise
+
+    latency = time.perf_counter() - start_time
+    REQUEST_COUNT.labels(request.method, request.url.path, status_code).inc()
+    REQUEST_LATENCY.labels(request.method, request.url.path, status_code).observe(latency)
+    return response
+
 @app.get("/health")
 def health() -> dict:
     return {
@@ -119,8 +165,16 @@ def predict(inp: PredictIn) -> PredictOut:
     if _model is None:
         return PredictOut(label="unknown", proba_spam=0.0, model_path=None)
 
+    if SIMULATED_LATENCY_SEC > 0:
+        time.sleep(SIMULATED_LATENCY_SEC)
+
     feats = build_features(inp.text)
     X = pd.DataFrame([[feats[c] for c in FEATURE_COLUMNS]], columns=FEATURE_COLUMNS)
     proba = float(_model.predict_proba(X)[0, 1])
+    PREDICTION_DISTRIBUTION.observe(proba)
     label = "spam" if proba >= 0.5 else "ham"
     return PredictOut(label=label, proba_spam=proba, model_path=str(_model_path) if _model_path else None)
+
+@app.get("/metrics")
+def metrics() -> Response:
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
