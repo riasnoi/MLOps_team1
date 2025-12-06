@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - team1_lab13
+      - main
 
 permissions:
   contents: read
