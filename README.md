@@ -198,6 +198,22 @@ Feast конфигурация использует file/offline store: entity `
 
 API инструментирован через `prometheus_client` и отдаёт `/metrics`. Кастомные метрики: `request_count{method,endpoint,http_status}`, `request_latency_seconds_bucket/sum/count`, `prediction_proba_spam_bucket/sum/count`. Для демонстрации долгих ответов можно добавить задержку в `/predict` через переменную `SIMULATED_LATENCY_SEC` (секунды).
 
+## CI/CD до кластера
+
+Готов GitHub Actions workflow `.github/workflows/deploy.yml`: на push в `main` прогоняет тесты, собирает Docker-образ, пушит в GHCR и обновляет образ в Kubernetes.
+
+Минимальные секреты:
+- `KUBE_CONFIG_DATA` — base64 от kubeconfig с доступом к кластеру (создайте `cat ~/.kube/config | base64 -w0`).
+- Registry использует встроенный `GITHUB_TOKEN` (`packages: write`), поэтому дополнительных секретов для GHCR не нужно. Сделайте пакет публичным один раз через UI GHCR или `imagePullSecret`, чтобы кластер мог тянуть образ.
+
+Основные шаги pipeline:
+1. `pytest -q`
+2. `docker build -t ghcr.io/<owner>/spam-api:{sha|latest} .`
+3. `docker push` обоих тегов в GHCR
+4. `kubectl set image deployment/spam-api spam-api=ghcr.io/<owner>/spam-api:latest && kubectl rollout status`
+
+Проверка: пушьте в feature-ветку → PR → merge в `main`; в логах Actions увидите публикацию образа и успешный rollout деплоймента `spam-api`.
+
 ### Docker Compose (API + Prometheus + Grafana)
 
 1. Поднять стек:  
