@@ -45,6 +45,10 @@ function App() {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
+  const maxHistory = 8;
+  const historySubtitle = history.length
+    ? `последние ${Math.min(history.length, maxHistory)}`
+    : "нет запросов";
 
   const sentimentTone = useMemo(() => {
     if (!result) return "neutral";
@@ -66,7 +70,9 @@ function App() {
       }
       const data = await resp.json();
       setResult(data);
-      setHistory((prev) => [{ text, label: data.label, proba: data.proba_spam }, ...prev].slice(0, 8));
+      setHistory((prev) =>
+        [{ text, label: data.label, proba: data.proba_spam }, ...prev].slice(0, maxHistory)
+      );
     } catch (err) {
       setError(err.message || "Неизвестная ошибка");
     } finally {
@@ -159,7 +165,7 @@ function App() {
         { className: "panel history-panel" },
         React.createElement("div", { className: "label-row" }, [
           React.createElement("span", { className: "label" }, "История запросов"),
-          React.createElement("span", { className: "muted tiny" }, "последние 8"),
+          React.createElement("span", { className: "muted tiny" }, historySubtitle),
         ]),
         React.createElement(HistoryList, { items: history })
       )
