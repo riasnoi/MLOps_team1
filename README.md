@@ -32,6 +32,8 @@ curl -X POST http://127.0.0.1:8080/predict -H "Content-Type: application/json" \
   -d '{"text":"hello friend"}'
 ```
 
+Мини UI (React без сборки): откройте [http://127.0.0.1:8080/ui](http://127.0.0.1:8080/ui). Страница шлёт запросы на `/predict`, показывает результат и историю. Зависит от CDN (esm.sh) для React.
+
 Docker:
 
 ```bash

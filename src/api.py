@@ -8,6 +8,8 @@ from typing import Optional
 import joblib
 import pandas as pd
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
@@ -86,6 +88,7 @@ try:
     SIMULATED_LATENCY_SEC = float(os.environ.get("SIMULATED_LATENCY_SEC", "0"))
 except ValueError:
     SIMULATED_LATENCY_SEC = 0.0
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 app = FastAPI(title="SMS Spam API (Lab6)")
 
@@ -133,6 +136,15 @@ def startup_event() -> None:
     # Для локального запуска MODEL_DIR может быть относительным и должен существовать
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     load_model()
+
+if STATIC_DIR.exists():
+    # Раздаём небольшую React-страницу без сборки
+    app.mount("/ui", StaticFiles(directory=STATIC_DIR, html=True), name="ui")
+
+
+@app.get("/")
+def root() -> RedirectResponse:
+    return RedirectResponse(url="/ui/")
 
 @app.middleware("http")
 async def metrics_middleware(request: Request, call_next):
