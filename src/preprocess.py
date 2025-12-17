@@ -10,6 +10,7 @@ RAW = Path("data/raw/sms_spam.csv")
 PROCESSED_DIR = Path("data/processed")
 PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 OUT = PROCESSED_DIR / "processed.csv"
+OUT_PARQUET = PROCESSED_DIR / "processed.parquet"
 
 URL_RE = re.compile(r"(https?://\S+|www\.\S+)", flags=re.IGNORECASE)
 DIGITS_RE = re.compile(r"\d")
@@ -65,13 +66,21 @@ def main():
     df["label"] = df["label"].astype(str).str.lower().str.strip()
     df = df[df["label"].isin(["ham", "spam"])].copy()
     df["target"] = (df["label"] == "spam").astype(int)
+    df = df.reset_index(drop=True)
+    df["sms_id"] = df.index.astype(int)
+
+    base_ts = pd.Timestamp("2020-01-01T00:00:00+00:00")
+    df["event_timestamp"] = base_ts + pd.to_timedelta(df["sms_id"] % 365, unit="D")
 
     keep = [
+        "sms_id", "event_timestamp",
         "text", "text_clean", "label", "target",
         "char_len", "word_len", "num_digits", "num_urls", "num_domains", "upper_ratio"
     ]
-    df[keep].to_csv(OUT, index=False)
-    print(f"Saved processed dataset to {OUT} with shape {df[keep].shape}")
+    features = df[keep]
+    features.to_csv(OUT, index=False)
+    features.to_parquet(OUT_PARQUET, index=False)
+    print(f"Saved processed datasets to {OUT} and {OUT_PARQUET} with shape {features.shape}")
 
 if __name__ == "__main__":
     main()

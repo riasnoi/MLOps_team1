@@ -1,0 +1,15 @@
+artifact_uri: file:///Users/vladimirriasnoi/Desktop/Uni/ML/mlops/MLOps_team1/mlruns/285706222051352184/478646371b9c402880ecd5144a1a601a/artifacts
+end_time: 1760011382297
+entry_point_name: ''
+experiment_id: '285706222051352184'
+lifecycle_stage: active
+run_id: 478646371b9c402880ecd5144a1a601a
+run_name: bold-worm-212
+run_uuid: 478646371b9c402880ecd5144a1a601a
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1760011379736
+status: 3
+tags: []
+user_id: vladimirriasnoi
