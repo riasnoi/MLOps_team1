@@ -1,6 +1,17 @@
 # SMS Spam Detector — учебный MLOps стек
 
+![SMS Spam Detector UI](images/image.png)
+
 Это демо, как собрать весь жизненный цикл модели для антиспама на SMS: от сырых сообщений до сервиса с мониторингом. Задача — классифицировать входящий текст на `spam`/`ham`, построив простые интерпретируемые признаки, обучив модель и развернув её с метриками и CI/CD. Репозиторий демонстрирует, как связать данные, Feature Store, обучение, проверку качества, API, мониторинг и доставку в одно целое, чтобы можно было воспроизводимо получать и обновлять модель.
+
+Презентация: [MLOps.pdf](presentation/MLOps.pdf).
+
+Основные фишки (из презентации):
+- end-to-end пайплайн: download → preprocess → Feast apply/materialize → train → evaluate → register → serve;
+- согласованность фичей оффлайн/онлайн (Feast) и контроль качества перед выкладкой (порог ROC-AUC);
+- наблюдаемость: метрики Prometheus (`request_count`, `latency`, `prediction_proba_spam`) + готовый дашборд Grafana;
+- лёгкий фронтенд `/ui` на React без сборки: ввод SMS, история запросов, показ P(spam), ссылки на метрики;
+- CI/CD через GitHub Actions (pytest → build/push GHCR → `kubectl set image`) и манифесты Kubernetes/HPA.
 
 Проект показывает полный путь от подготовки данных до продового сервиса с мониторингом:
 - предобработка SMS и простые текстовые признаки;
@@ -9,6 +20,11 @@
 - Feature Store на Feast для согласованности фичей;
 - мониторинг Prometheus + Grafana;
 - CI/CD (GitHub Actions) и K8s манифесты.
+
+## Фронтенд
+- Отдаётся из `static/` на маршруте `/ui` (FastAPI StaticFiles), React 18 из CDN без сборки.
+- Возможности: ввод текста, подсказки спам/хам, сохранение последних запросов (до 8), показ вероятности `P(spam)` и имени файла модели, ссылки на `/metrics` и репозиторий.
+- Стили и сетка в `static/style.css`, логика — `static/app.js`, точка входа — `static/index.html`.
 
 ## Что внутри репозитория
 - `src/`: скрипты `download_data`, `preprocess`, `train`, `evaluate`, `register`, `api`, `drift_check`.

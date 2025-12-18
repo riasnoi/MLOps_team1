@@ -4,6 +4,7 @@ import os
 import time
 from pathlib import Path
 from typing import Optional
+from contextlib import asynccontextmanager
 
 import joblib
 import pandas as pd
@@ -90,8 +91,6 @@ except ValueError:
     SIMULATED_LATENCY_SEC = 0.0
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
-app = FastAPI(title="SMS Spam API (Lab6)")
-
 _model = None
 _model_path: Optional[Path] = None
 
@@ -131,11 +130,15 @@ class PredictOut(BaseModel):
     proba_spam: float
     model_path: Optional[str] = None
 
-@app.on_event("startup")
-def startup_event() -> None:
-    # Для локального запуска MODEL_DIR может быть относительным и должен существовать
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: выполняется при запуске приложения
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     load_model()
+    yield
+    # Shutdown: здесь можно добавить код очистки ресурсов при необходимости
+
+app = FastAPI(title="SMS Spam API (Lab6)", lifespan=lifespan)
 
 if STATIC_DIR.exists():
     # Раздаём небольшую React-страницу без сборки
